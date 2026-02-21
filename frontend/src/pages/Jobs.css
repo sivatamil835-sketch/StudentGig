@@ -1,0 +1,175 @@
+.py-4 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.whitespace-pre-line {
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+.uppercase {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.d-inline-block {
+    display: inline-block;
+}
+
+.jobs-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+}
+
+@media (max-width: 900px) {
+    .jobs-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.filter-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: block;
+}
+
+.checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkbox-list label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.sort-select {
+    width: auto;
+    min-width: 150px;
+    padding: 0.5rem;
+}
+
+.job-card-link {
+    display: block;
+    transition: transform 0.2s;
+}
+
+.job-card-link:hover {
+    transform: translateY(-2px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+}
+
+/* Job Details Layout */
+.job-details-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+}
+
+@media (max-width: 900px) {
+    .job-details-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .job-sidebar {
+        order: -1;
+    }
+
+    /* Bring actions to top on mobile */
+}
+
+.back-link {
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: var(--primary);
+}
+
+.job-main-info {
+    padding: 2.5rem;
+}
+
+.job-action-card,
+.employer-card {
+    padding: 1.5rem;
+}
+
+.job-title-large {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.job-budget-badge {
+    background-color: #f0fdf4;
+    color: #166534;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+[data-theme='dark'] .job-budget-badge {
+    background-color: #14532d;
+    color: #4ade80;
+}
+
+.employer-avatar-sm {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+}
+
+.verified-badge {
+    color: #059669;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #d1fae5;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+[data-theme='dark'] .verified-badge {
+    color: #34d399;
+    background: #064e3b;
+}
