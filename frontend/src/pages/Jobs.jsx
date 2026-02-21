@@ -1,28 +1,60 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../store/authStore';
 import JobCard from '../components/JobCard';
 import './Jobs.css';
 
-const dummyJobs = [
-    { id: 1, title: 'React Frontend Developer', budget: '$200 - $500', duration: '2 weeks', skills: ['React', 'JavaScript', 'CSS'], type: 'Remote' },
-    { id: 2, title: 'Python Backend Scripting', budget: '$100', duration: '3 days', skills: ['Python', 'FastAPI'], type: 'Remote' },
-    { id: 3, title: 'UI/UX Design for Startup App', budget: '$300', duration: '1 month', skills: ['Figma', 'UI Design'], type: 'Remote' },
-    { id: 4, title: 'Technical Blog Writer', budget: '$50 / post', duration: 'Ongoing', skills: ['Content Writing', 'SEO'], type: 'Remote' },
-    { id: 5, title: 'Embedded C Programmer', budget: '$400', duration: '3 weeks', skills: ['Embedded C', 'IoT'], type: 'Hybrid' },
-    { id: 6, title: 'Data Scraping & Analysis', budget: '$250', duration: '1 week', skills: ['Python', 'Pandas'], type: 'Remote' },
-];
-
 const Jobs = () => {
+    const [jobs, setJobs] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filters, setFilters] = useState({
+        categories: [],
+        type: 'Any'
+    });
 
-    const filteredJobs = dummyJobs.filter(job =>
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    useEffect(() => {
+        fetchJobs();
+    }, []);
+
+    const fetchJobs = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (data) setJobs(data);
+        setLoading(false);
+    };
+
+    const handleCategoryChange = (cat) => {
+        setFilters(prev => ({
+            ...prev,
+            categories: prev.categories.includes(cat)
+                ? prev.categories.filter(c => c !== cat)
+                : [...prev.categories, cat]
+        }));
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setFilters({ categories: [], type: 'Any' });
+    };
+
+    const filteredJobs = jobs.filter(job => {
+        const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            job.skills?.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesType = filters.type === 'Any' || job.type === filters.type;
+        // Simple category match: if no categories selected, show all. If some, check if any skill matches.
+        const matchesCategory = filters.categories.length === 0 ||
+            filters.categories.some(c => job.title.toLowerCase().includes(c.toLowerCase()));
+
+        return matchesSearch && matchesType && matchesCategory;
+    });
 
     return (
         <div className="jobs-page container py-4">
-            <div className="jobs-header mb-4">
+            <div className="jobs-header mb-4 text-center">
                 <h1 className="page-title">Find Freelance Projects</h1>
                 <p className="text-muted">Discover the best opportunities tailored for students.</p>
             </div>
@@ -46,24 +78,33 @@ const Jobs = () => {
                     <div className="filter-group mb-4">
                         <label className="filter-label">Category</label>
                         <div className="checkbox-list mt-2">
-                            <label><input type="checkbox" /> Web Development</label>
-                            <label><input type="checkbox" /> UI/UX Design</label>
-                            <label><input type="checkbox" /> Data Science</label>
-                            <label><input type="checkbox" /> Content Writing</label>
+                            {['Web Development', 'UI/UX Design', 'Data Science', 'Content Writing'].map(cat => (
+                                <label key={cat}>
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.categories.includes(cat)}
+                                        onChange={() => handleCategoryChange(cat)}
+                                    /> {cat}
+                                </label>
+                            ))}
                         </div>
                     </div>
 
                     <div className="filter-group mb-4">
-                        <label className="filter-label">Project Duration</label>
-                        <select className="input mt-2">
-                            <option>Any Duration</option>
-                            <option>Less than 1 week</option>
-                            <option>1 to 4 weeks</option>
-                            <option>1 to 3 months</option>
+                        <label className="filter-label">Work Type</label>
+                        <select
+                            className="input mt-2"
+                            value={filters.type}
+                            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                        >
+                            <option value="Any">Any Type</option>
+                            <option value="Remote">Remote</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="On-site">On-site</option>
                         </select>
                     </div>
 
-                    <button className="btn btn-outline btn-full">Clear Filters</button>
+                    <button className="btn btn-outline btn-full" onClick={clearFilters}>Clear Filters</button>
                 </aside>
 
                 {/* Jobs Grid */}
@@ -71,28 +112,29 @@ const Jobs = () => {
                     <div className="results-header flex-between mb-4">
                         <span>Showing {filteredJobs.length} results</span>
                         <select className="input sort-select">
-                            <option>Most Relevant</option>
                             <option>Newest First</option>
                             <option>Budget (High to Low)</option>
                         </select>
                     </div>
 
-                    <div className="jobs-grid">
-                        {filteredJobs.map(job => (
-                            <Link to={`/jobs/${job.id}`} key={job.id} className="job-card-link">
-                                <JobCard job={job} />
-                            </Link>
-                        ))}
-                    </div>
+                    {loading ? (
+                        <div className="loading-state py-5 text-center">Loading jobs...</div>
+                    ) : (
+                        <div className="jobs-grid">
+                            {filteredJobs.map(job => (
+                                <JobCard key={job.id} job={job} />
+                            ))}
+                        </div>
+                    )}
 
-                    {filteredJobs.length === 0 && (
-                        <div className="empty-state card">
-                            <p>No jobs found matching your criteria. Try adjusting your filters.</p>
+                    {!loading && filteredJobs.length === 0 && (
+                        <div className="empty-state card py-5 text-center">
+                            <p>No jobs found matching your criteria.</p>
                             <button
                                 className="btn btn-primary mt-3"
-                                onClick={() => setSearchTerm('')}
+                                onClick={clearFilters}
                             >
-                                Clear Search
+                                Clear All
                             </button>
                         </div>
                     )}

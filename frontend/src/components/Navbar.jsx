@@ -14,17 +14,19 @@ const Navbar = () => {
                 </Link>
                 <div className="nav-links">
                     <Link to="/jobs">Find Jobs</Link>
-                    <Link to="/talents">Hire Students</Link>
+                    {user?.user_metadata?.role === 'employer' && (
+                        <Link to="/post-job" className="btn btn-ghost">Post a Job</Link>
+                    )}
                 </div>
                 <div className="nav-actions">
                     {user ? (
                         <>
-                            {user.role === 'student' ? (
+                            {user.user_metadata?.role === 'student' ? (
                                 <Link to="/student-dashboard" className="btn btn-outline">Dashboard</Link>
                             ) : (
                                 <Link to="/employer-dashboard" className="btn btn-outline">Dashboard</Link>
                             )}
-                            <button onClick={logout} className="btn btn-primary">Log out</button>
+                            <button onClick={() => { logout(); window.location.href = '/'; }} className="btn btn-primary">Log out</button>
                         </>
                     ) : (
                         <>

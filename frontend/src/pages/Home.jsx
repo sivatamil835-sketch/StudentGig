@@ -3,13 +3,19 @@ import { Link } from 'react-router-dom';
 import './Home.css';
 import JobCard from '../components/JobCard';
 
-const dummyJobs = [
-    { id: 1, title: 'React Frontend Developer', budget: '$200 - $500', duration: '2 weeks', skills: ['React', 'JavaScript', 'CSS'], type: 'Remote' },
-    { id: 2, title: 'Python Backend Scripting', budget: '$100', duration: '3 days', skills: ['Python', 'FastAPI'], type: 'Remote' },
-    { id: 3, title: 'UI/UX Design for Startup App', budget: '$300', duration: '1 month', skills: ['Figma', 'UI Design'], type: 'Remote' },
-];
+import { supabase } from '../store/authStore';
 
 const Home = () => {
+    const [jobs, setJobs] = React.useState([]);
+
+    React.useEffect(() => {
+        const fetchJobs = async () => {
+            const { data } = await supabase.from('jobs').select('*').limit(3).order('created_at', { ascending: false });
+            if (data) setJobs(data);
+        };
+        fetchJobs();
+    }, []);
+
     return (
         <div className="home-page">
             {/* Hero Section */}
@@ -36,9 +42,11 @@ const Home = () => {
                         <Link to="/jobs" className="view-all">View all jobs →</Link>
                     </div>
                     <div className="jobs-grid">
-                        {dummyJobs.map((job) => (
+                        {jobs.length > 0 ? jobs.map((job) => (
                             <JobCard key={job.id} job={job} />
-                        ))}
+                        )) : (
+                            <div className="text-center py-4 text-muted" style={{ gridColumn: '1/-1' }}>Loading latest opportunities...</div>
+                        )}
                     </div>
                 </div>
             </section>
