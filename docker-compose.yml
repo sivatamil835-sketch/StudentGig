@@ -1,1 +1,23 @@
-version: '3.8'\n\nservices:\n  backend:\n    build: ./backend\n    ports:\n      - "8000:8000"\n    environment:\n      - SUPABASE_URL=${SUPABASE_URL}\n      - SUPABASE_KEY=${SUPABASE_KEY}\n    volumes:\n      - ./backend:/app\n    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload\n\n  frontend:\n    build: ./frontend\n    ports:\n      - "5173:5173"\n    volumes:\n      - ./frontend:/app\n      - /app/node_modules\n    command: npm run dev -- --host\n
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - vlsi-net
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - vlsi-net
+
+networks:
+  vlsi-net:
+    driver: bridge

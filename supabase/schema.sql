@@ -1,77 +1,63 @@
--- ============================================================
--- StudentGig Supabase Database Schema
--- Run this in your Supabase project's SQL Editor
--- ============================================================
+-- VLSI Career Hub Database Schema
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ============================================================
--- JOBS TABLE
--- ============================================================
+-- Profiles table extending Auth.users
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  full_name TEXT,
+  role TEXT CHECK (role IN ('student', 'experienced', 'admin')),
+  phone TEXT,
+  skills TEXT[],
+  experience_years INTEGER DEFAULT 0,
+  resume_url TEXT,
+  linkedin_url TEXT,
+  github_url TEXT,
+  bio TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Jobs table
 CREATE TABLE IF NOT EXISTS jobs (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title       TEXT NOT NULL,
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  company TEXT NOT NULL,
   description TEXT,
-  budget      TEXT,
-  duration    TEXT,
-  skills      TEXT[],
-  type        TEXT DEFAULT 'Remote',
-  employer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  skills_required TEXT[],
+  experience_level TEXT CHECK (experience_level IN ('fresher', 'experienced')),
+  location TEXT,
+  job_type TEXT CHECK (job_type IN ('onsite', 'remote', 'hybrid')),
+  salary_range TEXT,
+  posted_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================
--- APPLICATIONS TABLE
--- ============================================================
+-- Applications table
 CREATE TABLE IF NOT EXISTS applications (
-  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  job_id     UUID REFERENCES jobs(id) ON DELETE CASCADE,
-  student_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  status     TEXT DEFAULT 'Pending',  -- Pending | Accepted | Rejected
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(job_id, student_id)  -- Prevent duplicate applications
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id),
+  job_id UUID REFERENCES jobs(id),
+  status TEXT DEFAULT 'applied' CHECK (status IN ('applied', 'reviewing', 'shortlisted', 'rejected')),
+  applied_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================
--- MESSAGES TABLE (for Chat)
--- ============================================================
-CREATE TABLE IF NOT EXISTS messages (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  sender_id   UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  content     TEXT NOT NULL,
-  created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- ============================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
--- ============================================================
-
--- Jobs: anyone can read, only employer can insert/update their own
+-- RLS Policies (Row Level Security)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view jobs" ON jobs FOR SELECT USING (true);
-CREATE POLICY "Employers can insert jobs" ON jobs FOR INSERT WITH CHECK (auth.uid() = employer_id);
-CREATE POLICY "Employers can update their jobs" ON jobs FOR UPDATE USING (auth.uid() = employer_id);
-CREATE POLICY "Employers can delete their jobs" ON jobs FOR DELETE USING (auth.uid() = employer_id);
-
--- Applications: students see their own, employers see applicants on their jobs
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Students see own applications" ON applications FOR SELECT USING (auth.uid() = student_id);
-CREATE POLICY "Employers see their job applications" ON applications FOR SELECT
-  USING (EXISTS ( SELECT 1 FROM jobs WHERE jobs.id = applications.job_id AND jobs.employer_id = auth.uid()));
-CREATE POLICY "Students can apply" ON applications FOR INSERT WITH CHECK (auth.uid() = student_id);
-CREATE POLICY "Employers can update status" ON applications FOR UPDATE
-  USING (EXISTS ( SELECT 1 FROM jobs WHERE jobs.id = applications.job_id AND jobs.employer_id = auth.uid()));
 
--- Messages: users can see their own sent/received messages
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users see own messages" ON messages FOR SELECT
-  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
-CREATE POLICY "Users can send messages" ON messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+-- Profiles: Anyone can view, only owner can update
+CREATE POLICY "Public profiles are viewable by everyone." ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users can insert their own profile." ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile." ON profiles FOR UPDATE USING (auth.uid() = id);
 
--- ============================================================
--- SAMPLE DATA (optional - for testing)
--- ============================================================
--- INSERT INTO jobs (title, description, budget, duration, skills, type, employer_id)
--- VALUES ('React Frontend Developer', 'Build our MVP UI', '$200-$500', '2 weeks', ARRAY['React','CSS'], 'Remote', '<your-employer-user-id>');
+-- Jobs: Anyone can view, only admins (or specific users) can insert
+CREATE POLICY "Jobs are viewable by everyone." ON jobs FOR SELECT USING (true);
+CREATE POLICY "Only admins can insert jobs." ON jobs FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Applications: Users can see their own, admins can see all
+CREATE POLICY "Users can see their own applications." ON applications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own applications." ON applications FOR INSERT WITH CHECK (auth.uid() = user_id);
